@@ -1,6 +1,6 @@
 # Thiết kế bot farm PAPER
 
-Trạng thái: **bản nháp chờ duyệt**, chưa có code. Cơ chế protocol xem ở [`protocol.md`](protocol.md), API relayer ở [`relayer-api.md`](relayer-api.md).
+Trạng thái: **đã cài đặt** (`src/`). Hướng dẫn chạy xem README. Cơ chế protocol xem ở [`protocol.md`](protocol.md), API relayer ở [`relayer-api.md`](relayer-api.md).
 
 ## Mục tiêu
 
@@ -15,16 +15,16 @@ Trạng thái: **bản nháp chờ duyệt**, chưa có code. Cơ chế protocol
 
 - 2 ví mới, mỗi ví **$500** do người dùng tự nạp. Key ví chính lưu trên server của bot.
 - **Ví A giữ chân long, ví B giữ chân short** (có thể đảo vai theo từng cặp).
-- Mỗi vị thế phải có notional ≥ $5.000, mỗi ví giữ lại $50 dự phòng.
+- Mỗi vị thế phải có notional ≥ mức tối thiểu của sàn (đọc từ `/state/trading`, hiện là $10.000), mỗi ví giữ lại $50 dự phòng.
 
 ## Stack
 
-**TypeScript (strict) trên Node 22 LTS**, gồm:
+**TypeScript (strict) trên Node 22 LTS** (đã chọn), gồm:
 - `viem`: ký EIP-712 và đọc RPC. Frontend chính thức cũng dùng viem/wagmi, nên cách hash typed data và tính intentId giống hệt.
 - `zod`: kiểm tra schema của mọi phản hồi API. Frontend cũng dùng zod.
-- `better-sqlite3`: lưu trạng thái, nonce, nhật ký các cặp.
-- `pino`: ghi log.
-- `ws`: WebSocket của Hyperliquid.
+- File JSON ghi nguyên tử (`data/`): trạng thái các cặp, nonce, session key, sổ ngân sách; `data/cycles.jsonl` ghi từng cặp đã đóng. Không cần module native.
+- Logger JSON tự viết: mỗi dòng một object, hợp với journald.
+- WebSocket có sẵn của Node: kênh `bbo` của Hyperliquid làm nguồn giá chính, REST làm dự phòng.
 - SSE client cho `/state/user/live`.
 - `vitest`: unit test.
 
@@ -93,7 +93,7 @@ IDLE → OPENING → OPEN → CLOSING → CLOSED
 
 - `keep(d)` theo công thức impact on-chain (deadband → scale → phí 2%).
 - `L(d) = min(maxLev, floor(1 / (k·d + bustBuffer + m_lat)))`, với `k = 2` và `m_lat = σ·√(p95 latency)`.
-- `M_min(d) = 5.500 / L(d)`: margin tối thiểu để notional ≥ $5,5k (lấy dư 10% so với $5k).
+- `M_min(d) = 1,1 × minNotional / L(d)`: margin tối thiểu để notional vượt mức tối thiểu của sàn 10%. Margin mỗi chân = max(vốn trống chia đều cho số slot, M_min), không vượt vốn trống.
 - `τ(d) ≈ (d/σ)² + latency`: thời gian kỳ vọng để giá chạm ±d.
 - `c(d) = (1 − q·keep(d)) / (E_proj · f)`:
   - `f = 0,98` khi hàng đợi rỗng, `f = 1` khi đang có hàng đợi.
@@ -142,20 +142,20 @@ IDLE → OPENING → OPEN → CLOSING → CLOSED
   - Session key được sinh riêng và lưu mã hoá.
   - Server chỉ mở cổng SSH; log không bao giờ chứa key.
 
-## Tham số mặc định (cần bạn chốt)
+## Tham số mặc định
 
 | Tham số | Mặc định đề xuất | Ghi chú |
 |---|---|---|
 | Vốn mỗi ví | $500 | đã chốt |
 | Dự phòng mỗi ví | $50 | không đem làm margin |
-| `B_day` (ngân sách đốt/ngày) | **$50** | khoảng 5% vốn/ngày; quyết định tốc độ |
-| `max_cost_per_paper` | **$0,0025** | trần giá cho mỗi PAPER |
-| `equity_floor` | $600 | dừng hẳn khi tổng 2 ví xuống dưới mức này |
+| `B_day` (ngân sách đốt/ngày) | **$200** | đã chốt; quyết định tốc độ |
+| `max_cost_per_paper` | **$0,0025** | đã chốt |
+| `equity_floor` | $200 | dừng mở cặp mới khi tổng 2 ví xuống dưới mức này |
 | `k` (bội số khoảng cách tới bust) | 2 | |
 | `max_pairs` | 4 | |
 | Tài sản | BTC, ETH | chọn theo OI còn trống và spread |
 
-Ví dụ với $50/ngày: bot sẽ chạy khoảng 1–2 cặp ở target khoảng 1,5–2% (25–33x, margin khoảng $170–220 mỗi chân), chi phí khoảng $0,0013/PAPER, tức khoảng 35–40k PAPER/ngày. Khi mint rate sắp giảm, bot tăng tốc lên tối đa $100/ngày.
+Ví dụ với $200/ngày và $500/ví: bot chạy khoảng 2–4 cặp ở target 0,3–0,75% (60–150x, margin khoảng $110–180 mỗi chân), chi phí khoảng $0,0016–0,0018/PAPER, tức khoảng 110–125k PAPER/ngày. Khi mint rate sắp giảm, bot được tiêu trước tối đa $400/ngày.
 
 ## Các bước triển khai
 

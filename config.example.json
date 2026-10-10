@@ -1,0 +1,15 @@
+{
+  "mode": "monitor",
+  "budget": {
+    "dailyUsd": 200,
+    "maxCostPerPaper": 0.0025,
+    "equityFloorUsd": 200,
+    "reservePerWalletUsd": 50
+  },
+  "pairs": {
+    "maxPairs": 4,
+    "bustSafetyMultiple": 2,
+    "singleWalletHedge": false
+  },
+  "assets": ["BTC", "ETH"]
+}

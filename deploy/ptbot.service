@@ -1,0 +1,26 @@
+# systemd unit for the live bot. Install:
+#   sudo cp deploy/ptbot.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#   sudo systemctl enable --now ptbot && journalctl -u ptbot -f
+[Unit]
+Description=Papertrade PAPER farming bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ptbot
+WorkingDirectory=/opt/papertrade
+EnvironmentFile=/opt/papertrade/.env
+ExecStart=/usr/bin/node dist/cli.js run
+Restart=on-failure
+RestartSec=10
+# A clean stop leaves hedged pairs open; they are re-adopted from data/pairs.json on restart.
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/papertrade/data /opt/papertrade
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

@@ -133,6 +133,16 @@ Getter đã đọc được: `tokenomics.trackedLpUsd() / tailProgressUsd() / lp
 - Relayer đang **tạm dừng `openPosition` và `closePositions`** (chưa mở sàn).
 - Margin tối thiểu $1, **notional tối thiểu $5.000** mỗi vị thế, net OI tối đa $50M, stake tối thiểu 1.000 PAPER.
 
+## Thay đổi ngày 2026-10-10 (~02:30 UTC, vẫn trước giờ mở lệnh)
+
+- **Notional tối thiểu tăng lên $10.000**, margin tối thiểu tăng lên $10.
+- Tiền đã nạp ≈ $59,9M.
+- OI cap được nâng lên khoảng $1 tỷ mỗi phía.
+- Net OI tối đa tăng lên $250M.
+- `openPosition` và `closePositions` vẫn đang tạm dừng.
+
+Bot đọc lại các giá trị này liên tục từ `/state/trading`, không hard-code.
+
 ## Kinh tế của cặp long/short
 
 Mở long và short cùng tài sản, cùng notional `N`, cùng giá vào. Đóng cả hai cùng lúc khi giá đã chạy `|move| = d`, khi đó lỗ của chân thua đúng bằng lời gộp của chân thắng. Gọi `keep(d)` là phần lời thực nhận (bảng ở trên). Với hàng đợi rỗng:
